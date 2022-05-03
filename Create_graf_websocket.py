@@ -24,7 +24,7 @@ t = threading.Thread(target=wsthread, args=(closes,))
 t.start()
 
 fig, ax = plt.subplots()
-plt.axis([0, 100, 0, 3000])
+plt.axis([0, 100, 0, 35000])
 x= np.arange(100)
 y=[np.nan] * 100
 line, = ax.plot(x, y)
