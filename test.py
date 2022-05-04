@@ -1,31 +1,32 @@
-# Импорт пакета панд
+import time
+import matplotlib.pyplot as plt
+import numpy
 
-import pandas as pd
 
-  
-# создать словарь по пять полей в каждом
+def gaussian(x, delay, sigma):
+    '''
+    Функция, график которой будет отображаться процессе анимации
+    '''
+    return numpy.exp(-((x - delay) / sigma) ** 2)
 
-data = {
 
-    'A':['A1', 'A2', 'A3', 'A4', 'A5'], 
+if __name__ == '__main__':
 
-    'B':['B1', 'B2', 'B3', 'B4', 'B5'], 
+    # !!! Включить интерактивный режим для анимации
+    plt.ion()
 
-    'C':['C1', 'C2', 'C3', 'C4', 'C5'], 
+    # У функции gaussian будет меняться параметр delay (задержка)
+    while True:
+        
+        # !!! Очистить текущую фигуру
+        plt.clf()
 
-    'D':['D1', 'D2', 'D3', 'D4', 'D5'], 
+        # Отобразить график
+        plt.plot(1, 1)
 
-    'E':['E1', 'E2', 'E3', 'E4', 'E5'] }
+        # !!! Следующие два вызова требуются для обновления графика
+        plt.draw()
+        plt.gcf().canvas.flush_events()
 
-  
-# Конвертировать словарь в DataFrame
-
-df = pd.DataFrame(data)
-
-  
-# Удалить три столбца в качестве базы индекса
-
-df.drop(df.columns[[0, 4, 2]], axis = 1, inplace = True)
-
-  
-print(df)
+        # Задержка перед следующим обновлением
+        time.sleep(0.02)

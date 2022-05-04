@@ -24,29 +24,32 @@ def get_history(df):
     df.drop(['Open', 'High', 'Low', 'Volume', 'Closetime', 'Quote asset volume', 'Number of trades','Taker by base', 'Taker buy quote', 'Ignore'], axis = 1, inplace = True)
     return df
 
-
-ubwa = unicorn_binance_websocket_api.BinanceWebSocketApiManager(exchange="binance.com")
-ubwa.create_stream('kline_1m', "BTCUSDT")
-jsMessage_last = {'data':'k'}
-jsMessage_last['data'] = {'k':'t', 'k':'c'}
-jsMessage_last['data']['k'] = {'t':0, 'c':0}
-while True:
-    oldest_data_from_stream_buffer = ubwa.pop_stream_data_from_stream_buffer()
-    if oldest_data_from_stream_buffer:
-        jsMessage = json.loads(oldest_data_from_stream_buffer)
-        if 'stream' in jsMessage.keys():
-            if jsMessage['data']['k']['t'] > jsMessage_last['data']['k']['t']:
-                jsMessage_last = jsMessage
-                df = get_history(df)
-                print()
-                print(df)
-            else:
-                print(df.tail(3))
-                # df.iloc[df.last_valid_index()] = pd.DataFrame.from_dict({'Opentime': [jsMessage_last['data']['k']['t']], 'Close': [jsMessage_last['data']['k']['c']]})
-                df.iloc[df.last_valid_index(), 0] = jsMessage['data']['k']['t']
-                df.iloc[df.last_valid_index(), 1] = jsMessage['data']['k']['c']
-                print(df.tail(3))
-                df.plot(x = 'Opentime', y = 'Close')
-                plt.show()
-                
-    else: time.sleep(1)
+if __name__ == '__main__':
+    plt.ion()
+    plt.rcParams['toolbar'] = 'None' 
+    ubwa = unicorn_binance_websocket_api.BinanceWebSocketApiManager(exchange="binance.com")
+    ubwa.create_stream('kline_1m', "BTCUSDT")
+    jsMessage_last = {'data':'k'}
+    jsMessage_last['data'] = {'k':'t', 'k':'c'}
+    jsMessage_last['data']['k'] = {'t':0, 'c':0}
+    while True:
+        oldest_data_from_stream_buffer = ubwa.pop_stream_data_from_stream_buffer()
+        if oldest_data_from_stream_buffer:
+            jsMessage = json.loads(oldest_data_from_stream_buffer)
+            if 'stream' in jsMessage.keys():
+                if jsMessage['data']['k']['t'] > jsMessage_last['data']['k']['t']:
+                    jsMessage_last = jsMessage
+                    df = get_history(df)
+                    print()
+                    print(df)
+                else:
+                    # df.iloc[df.last_valid_index()] = pd.DataFrame.from_dict({'Opentime': [jsMessage_last['data']['k']['t']], 'Close': [jsMessage_last['data']['k']['c']]})
+                    df.iloc[df.last_valid_index(), 0] = jsMessage['data']['k']['t']
+                    df.iloc[df.last_valid_index(), 1] = jsMessage['data']['k']['c']
+                    df["Close"] = df.Close.astype(float)
+                    
+                    plt.clf()
+                    plt.plot(df['Opentime'], df['Close'])
+                    plt.draw()
+                    plt.gcf().canvas.flush_events()
+        else: time.sleep(1)
