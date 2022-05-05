@@ -1,12 +1,25 @@
+from binance.spot import Spot as SpotClient
+import unicorn_binance_websocket_api
+from binance.client import Client
 import time
 import datetime
-from binance.spot import Spot as Client
-import unicorn_binance_websocket_api
 import pandas as pd
 import matplotlib.pyplot as plt
 import json
 from threading import Thread
 
+def poz_short():
+    print('short')
+
+def poz_long():
+    print('long')
+
+def average_last(ma_string, length_MA_int, df_klines):
+        sum = 0
+        for i in range(length_MA_int):
+            sum += df_klines['Close'].iloc[len(df_klines.index)-1-i]
+            if i >= length_MA_int-1:
+                df_klines.loc[len(df_klines.index)-1, ma_string] = sum/length_MA_int
 
 def average(ma_string, length_MA_int, df_klines):
     sum = 0
@@ -14,18 +27,20 @@ def average(ma_string, length_MA_int, df_klines):
     df_klines[ma_string] = df_klines['Close'].iloc[0]
     for i, row in enumerate(df_klines['Close'], start = 0):
         sum += row
-        if i > length_MA_int-2:
-            df_klines[ma_string].iloc[i] = sum/length_MA_int
+        if i >=length_MA_int-1:
+            df_klines.loc[i, ma_string] = sum/length_MA_int
             sum -= df_klines['Close'].iloc[x]
             x+=1
+def buil_graf():
+    plt.clf()
+    plt.plot(df['Opentime'], df['MA1'])
+    plt.plot(df['Opentime'], df['MA2'])
+    plt.draw()
+    plt.gcf().canvas.flush_events()
 
-def get_history(df):
-    
-    dt_start = datetime.datetime(2022,5,4, 12)
-    dt_start_ = round(time.mktime(dt_start.timetuple())*1000)
-
-    spot_client = Client(base_url="https://api1.binance.com")
-    klines = spot_client.klines(coin, interval, limit = 500)
+def get_history(df, limit):
+    spot_client = SpotClient(base_url="https://api1.binance.com")
+    klines = spot_client.klines(coin, interval, limit = limit)
     df = pd.DataFrame(klines)
     df.columns = ['Opentime', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'Quote asset volume', 'Number of trades','Taker by base', 'Taker buy quote', 'Ignore']
     df["Close"] = df.Close.astype(float)
@@ -35,20 +50,33 @@ def get_history(df):
     return df
 
 if __name__ == '__main__':
-    df = pd.DataFrame()
-    length_MA1 = 100
-    length_MA2 = 3
+    # Объявление переменных
+    length_MA1 = 3
+    length_MA2 = 100
     coin = 'BTCUSDT'
     interval = '1m'
     limit = 1000
+    df = pd.DataFrame()
+    top = False
 
+
+    # Настройка графика
     plt.ion()
     plt.rcParams['toolbar'] = 'None' 
+
+    # Словарь предыдущей записи
+    jsMessage_last = {
+        'data':{
+            'k':{
+                't':0,
+                'c':0
+            }
+        }
+    }
+
+    # Websocket
     ubwa = unicorn_binance_websocket_api.BinanceWebSocketApiManager(exchange="binance.com")
-    ubwa.create_stream('kline_1m', "BTCUSDT")
-    jsMessage_last = {'data':'k'}
-    jsMessage_last['data'] = {'k':'t', 'k':'c'}
-    jsMessage_last['data']['k'] = {'t':0, 'c':0}
+    ubwa.create_stream(f"kline_{interval}", coin)
     while True:
         oldest_data_from_stream_buffer = ubwa.pop_stream_data_from_stream_buffer()
         if oldest_data_from_stream_buffer:
@@ -56,18 +84,26 @@ if __name__ == '__main__':
             if 'stream' in jsMessage.keys():
                 if jsMessage['data']['k']['t'] > jsMessage_last['data']['k']['t']:
                     jsMessage_last = jsMessage
-                    df = get_history(df)
-                    print()
-                    print(df)
+                    df = get_history(df, limit)
                 else:
-                    # df.iloc[df.last_valid_index()] = pd.DataFrame.from_dict({'Opentime': [jsMessage_last['data']['k']['t']], 'Close': [jsMessage_last['data']['k']['c']]})
                     df.iloc[df.last_valid_index(), 0] = jsMessage['data']['k']['t']
                     df.iloc[df.last_valid_index(), 1] = jsMessage['data']['k']['c']
                     df["Close"] = df.Close.astype(float)
-                    plt.clf()
-                    # plt.plot(df['Opentime'], df['Close'])
-                    plt.plot(df['Opentime'], df['MA1'])
-                    plt.plot(df['Opentime'], df['MA2'])
-                    plt.draw()
-                    plt.gcf().canvas.flush_events()
+
+
+                    average_last('MA1', length_MA1, df)
+                    average_last('MA2', length_MA2, df)
+                    buil_graf()
+
+                    if top == False:
+                        # print()
+                        # print(df['MA1'].iloc[len(df.index)-1])
+                        # print(df['MA2'].iloc[len(df.index)-1])
+                        if df['MA1'].iloc[len(df.index)-1] > df['MA2'].iloc[len(df.index)-1]:
+                            poz_long()
+                            top = True
+                    elif top == True:
+                        if df['MA1'].iloc[len(df.index)-1] < df['MA2'].iloc[len(df.index)-1]:
+                            poz_short()
+                            top = False
         else: time.sleep(1)
