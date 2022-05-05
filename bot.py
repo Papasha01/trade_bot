@@ -1,4 +1,3 @@
-from binance.spot import Spot as SpotClient
 import unicorn_binance_websocket_api
 from binance.client import Client
 import time
@@ -9,9 +8,15 @@ import json
 from threading import Thread
 
 def poz_short():
+    f = open('python-binance.txt', 'w+')
+    x = client.futures_account()['positions']
+    for i in x:
+        if float(i['positionAmt']) > 0:
+            f.write("\n" + str(i))
     print('short')
 
 def poz_long():
+    
     print('long')
 
 def average_last(ma_string, length_MA_int, df_klines):
@@ -31,6 +36,7 @@ def average(ma_string, length_MA_int, df_klines):
             df_klines.loc[i, ma_string] = sum/length_MA_int
             sum -= df_klines['Close'].iloc[x]
             x+=1
+
 def buil_graf():
     plt.clf()
     plt.plot(df['Opentime'], df['MA1'])
@@ -38,9 +44,8 @@ def buil_graf():
     plt.draw()
     plt.gcf().canvas.flush_events()
 
-def get_history(df, limit):
-    spot_client = SpotClient(base_url="https://api1.binance.com")
-    klines = spot_client.klines(coin, interval, limit = limit)
+def get_history(df, coin, limit, interval):
+    klines = client.get_klines(symbol=coin, limit = limit, interval = interval)
     df = pd.DataFrame(klines)
     df.columns = ['Opentime', 'Open', 'High', 'Low', 'Close', 'Volume', 'Closetime', 'Quote asset volume', 'Number of trades','Taker by base', 'Taker buy quote', 'Ignore']
     df["Close"] = df.Close.astype(float)
@@ -50,14 +55,19 @@ def get_history(df, limit):
     return df
 
 if __name__ == '__main__':
+
+    client = Client(
+    api_key = '9YFuTICk3DzXd7PYVyJA9BgOXM1ktEjfIbEhVZoy2FcgNwbdi2V0zzAzYPJ4DbkO', 
+    api_secret = 'xLkCdvdWvwQ2ZMKNQTZwz1HjKEUGq2VtFfO0nhWRmzsRARbixO1jmszFDXvuvOGi')
+
     # Объявление переменных
     length_MA1 = 3
     length_MA2 = 100
     coin = 'BTCUSDT'
-    interval = '1m'
+    interval = '30m'
     limit = 1000
     df = pd.DataFrame()
-    top = False
+    top = True
 
 
     # Настройка графика
@@ -84,7 +94,7 @@ if __name__ == '__main__':
             if 'stream' in jsMessage.keys():
                 if jsMessage['data']['k']['t'] > jsMessage_last['data']['k']['t']:
                     jsMessage_last = jsMessage
-                    df = get_history(df, limit)
+                    df = get_history(df, coin, limit, interval)
                 else:
                     df.iloc[df.last_valid_index(), 0] = jsMessage['data']['k']['t']
                     df.iloc[df.last_valid_index(), 1] = jsMessage['data']['k']['c']
