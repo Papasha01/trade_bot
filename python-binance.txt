@@ -1,2 +1,0 @@
-
-{'symbol': 'DOGEUSDT', 'initialMargin': '0.38600265', 'maintMargin': '0.07720053', 'unrealizedProfit': '-0.00014700', 'positionInitialMargin': '0.38600265', 'openOrderInitialMargin': '0', 'leverage': '20', 'isolated': False, 'entryPrice': '0.12867', 'maxNotional': '250000', 'positionSide': 'BOTH', 'positionAmt': '60', 'notional': '7.72005300', 'isolatedWallet': '0', 'updateTime': 1651928340468, 'bidNotional': '0', 'askNotional': '0'}

@@ -173,44 +173,61 @@ def get_price_poz_top():
     else: 
         return False
 
-def check_profit():
+def check_profit(length_MA1, length_MA2):
     last_long = Decimal("0")
-
     last_short = Decimal("0")
     first = True
+    profit_point = Decimal("0")
+    profit_proc = Decimal("0")
 
-    profit = Decimal("0")
     price_poz_top_cp = get_price_poz_top_cp()
+
     #print(price_poz_top_cp)
     for i in range(length_MA2-1, df.shape[0]-1):
         if price_poz_top_cp == False:
             if df['MA1'].iloc[i] > df['MA2'].iloc[i]:
                 if first == True:
                     last_long = Decimal(df['Close'].iloc[i])
-                    #print('long', i)
                     price_poz_top_cp = True
                     first = False
                 else:
-                    #print(Decimal(df['Close'].iloc[i]), last_short)
-                    profit -= Decimal(df['Close'].iloc[i]) - last_short
+                    #print(-(Decimal(df['Close'].iloc[i]) - last_short))
+                    #print(Decimal(df['Close'].iloc[i])/last_short-1)
+                    profit_proc -= Decimal(df['Close'].iloc[i])/last_short-1
+                    profit_point -= Decimal(df['Close'].iloc[i]) - last_short
                     last_long = Decimal(df['Close'].iloc[i])
-                    #print('long', i)
                     price_poz_top_cp = True
         elif price_poz_top_cp == True:
             if df['MA1'].iloc[i] < df['MA2'].iloc[i]:
                 if first == True:
                     last_short = Decimal(df['Close'].iloc[i])
-                    #print('short', i)
-                    price_poz_top_cp = True
+                    price_poz_top_cp = False
                     first = False
                 else:
-                    #print(Decimal(df['Close'].iloc[i]), last_long)
-                    profit += Decimal(df['Close'].iloc[i]) - last_long
+                    #print(Decimal(df['Close'].iloc[i]) - last_long)
+                    #print(Decimal(df['Close'].iloc[i])/last_long-1)
+                    profit_proc += Decimal(df['Close'].iloc[i])/last_long-1
+                    profit_point += Decimal(df['Close'].iloc[i]) - last_long
                     last_short = Decimal(df['Close'].iloc[i])
-                    #print('short', i)
                     price_poz_top_cp = False
-    return profit
-        
+    return profit_proc, profit_point
+
+def check_all_profit():
+    for MA1 in range(1, 4):
+        for MA2 in range(2, 15):
+            average("MA1", MA1, df)
+            average("MA2", MA2, df)
+            
+            profit_proc, profit_point = check_profit(MA1, MA2)
+            f = open('profit.txt', 'a+')
+            f.write(f"MAs:, {MA1}, {MA2}\n")
+            f.write(f"profit: {round(profit_proc*100, 2)}% \n")
+            f.write(f"profit: {round(profit_point, 5)} points\n")
+            f.write("\n")
+            f.close()
+            print('MAs:', MA1, MA2)
+            print('profit: ', round(profit_proc*100, 2), '%')
+            print('profit: ', round(profit_point, 5), 'points')
 
 if __name__ == '__main__':
     spinner = Spinner('Checking ')
@@ -219,13 +236,13 @@ if __name__ == '__main__':
         client = enter_api_key()
 
     # Settings
-    coin = 'DOGEUSDT'
+    coin = 'MANAUSDT'
     length_MA1 = 3
-    length_MA2 = 50
+    length_MA2 = 30
     stop_loss = 50          #in points
     trading_ratio = 0.08    #in %
-    interval = '15m'
-    limit = 1000            #max 1000 and > length_MA2
+    interval = '1m'
+    limit = 200            #max 1000 and > length_MA2
     
     # Объявление DataFrame
     df = pd.DataFrame()
@@ -244,20 +261,25 @@ if __name__ == '__main__':
         }
     }
 
-    # Проверка убыточных сделок
-    close_unprofitable_positions()
+    # # Проверка убыточных сделок
+    # close_unprofitable_positions()
 
     # Установка размера позиции
-    position_amount = get_position_amount()
-
-    # Получение истории цен с подсчетом средних скользящих
-    df = get_history()
+    #position_amount = get_position_amount()
 
     # Определение положения скользящих
-    price_poz_top = get_price_poz_top()
-    print('profit: ', round(check_profit(), 5), 'points')
-    buil_graf()
-    plt.show(block=True)
+    #price_poz_top = get_price_poz_top()
+
+    # Проверка прибыльности на паре
+    # Получение истории цен с подсчетом средних скользящих
+    df = get_history()
+    
+    check_all_profit()
+
+    # Отображение графика
+    #buil_graf()
+    #plt.show(block=True)
+
     # # Websocket
     # ubwa = unicorn_binance_websocket_api.BinanceWebSocketApiManager(exchange="binance.com")
     # ubwa.create_stream(f"kline_{interval}", coin)
