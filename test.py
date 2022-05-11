@@ -8,21 +8,27 @@ from threading import Thread
 import math
 from decimal import Decimal
 
-D = Decimal
+x = 5.41
+a = Decimal("5")
+b = Decimal(float(56.4))
+c = Decimal(3)
 
-print(float(D(0.1**1).quantize(D("1.000000"))))
-print(float(D(0.1**2).quantize(D("1.000000"))))
-print(float(D(0.1**3).quantize(D("1.000000"))))
-print(float(D(0.1**4).quantize(D("1.000000"))))
-print(float(D(0.1**5).quantize(D("1.000000"))))
-print(float(D(0.1**6).quantize(D("1.000000"))))
+c += 2
+print(a+b+c)
+
+# print(float(D(0.1**1).quantize(D("1.000000"))))
+# print(float(D(0.1**2).quantize(D("1.000000"))))
+# print(float(D(0.1**3).quantize(D("1.000000"))))
+# print(float(D(0.1**4).quantize(D("1.000000"))))
+# print(float(D(0.1**5).quantize(D("1.000000"))))
+# print(float(D(0.1**6).quantize(D("1.000000"))))
 
 # f = open('Coin_pricePrecision.txt', 'w+')
 
-coin = 'DOGEUSDT'
-client = Client(
-api_key = '9YFuTICk3DzXd7PYVyJA9BgOXM1ktEjfIbEhVZoy2FcgNwbdi2V0zzAzYPJ4DbkO', 
-api_secret = 'xLkCdvdWvwQ2ZMKNQTZwz1HjKEUGq2VtFfO0nhWRmzsRARbixO1jmszFDXvuvOGi')
+# coin = 'DOGEUSDT'
+# client = Client(
+# api_key = '9YFuTICk3DzXd7PYVyJA9BgOXM1ktEjfIbEhVZoy2FcgNwbdi2V0zzAzYPJ4DbkO', 
+# api_secret = 'xLkCdvdWvwQ2ZMKNQTZwz1HjKEUGq2VtFfO0nhWRmzsRARbixO1jmszFDXvuvOGi')
 
 # order = client.futures_create_order(symbol=coin, side='BUY', type='MARKET', quantity=60)
 # print(order)

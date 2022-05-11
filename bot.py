@@ -6,11 +6,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import json
 from threading import Thread
-
+from progress.spinner import Spinner
 from decimal import Decimal
 
 D = Decimal
-
 
 def create_stop_loss():
     try:
@@ -39,6 +38,8 @@ def create_stop_loss():
                     )
     except Exception as e:
         print(e)
+        if e == 'APIError(code=-2021): Order would immediately trigger.':
+            close_pozition()
         time.sleep(5)
         create_stop_loss()
 
@@ -71,10 +72,10 @@ def close_pozition():
             if i['symbol'] == coin and i['positionAmt'] != '0':
                 if float(i['positionAmt']) > 0:
                     order = client.futures_create_order(symbol=coin, side='SELL', type='MARKET', quantity=abs(float(i['positionAmt'])))
-                    print(f"SELL: {order}")
+                    # print(f"SELL: {order}")
                 elif float(i['positionAmt']) < 0:
                     order = client.futures_create_order(symbol=coin, side='BUY', type='MARKET', quantity=abs(float(i['positionAmt'])))
-                    print(f"BUY: {order}")
+                    # print(f"BUY: {order}")
     except Exception as e:
         print(e)
         time.sleep(5)
@@ -159,13 +160,60 @@ def get_position_amount():
         time.sleep(5)
         get_position_amount()
 
+def get_price_poz_top_cp():
+    
+    if df['MA1'].iloc[length_MA2] > df['MA2'].iloc[length_MA2]:
+        return True
+    else: 
+        return False
+
 def get_price_poz_top():
     if df['MA1'].iloc[len(df.index)-1] > df['MA2'].iloc[len(df.index)-1]:
         return True
     else: 
         return False
+
+def check_profit():
+    last_long = Decimal("0")
+
+    last_short = Decimal("0")
+    first = True
+
+    profit = Decimal("0")
+    price_poz_top_cp = get_price_poz_top_cp()
+    #print(price_poz_top_cp)
+    for i in range(length_MA2-1, df.shape[0]-1):
+        if price_poz_top_cp == False:
+            if df['MA1'].iloc[i] > df['MA2'].iloc[i]:
+                if first == True:
+                    last_long = Decimal(df['Close'].iloc[i])
+                    #print('long', i)
+                    price_poz_top_cp = True
+                    first = False
+                else:
+                    #print(Decimal(df['Close'].iloc[i]), last_short)
+                    profit -= Decimal(df['Close'].iloc[i]) - last_short
+                    last_long = Decimal(df['Close'].iloc[i])
+                    #print('long', i)
+                    price_poz_top_cp = True
+        elif price_poz_top_cp == True:
+            if df['MA1'].iloc[i] < df['MA2'].iloc[i]:
+                if first == True:
+                    last_short = Decimal(df['Close'].iloc[i])
+                    #print('short', i)
+                    price_poz_top_cp = True
+                    first = False
+                else:
+                    #print(Decimal(df['Close'].iloc[i]), last_long)
+                    profit += Decimal(df['Close'].iloc[i]) - last_long
+                    last_short = Decimal(df['Close'].iloc[i])
+                    #print('short', i)
+                    price_poz_top_cp = False
+    return profit
         
+
 if __name__ == '__main__':
+    spinner = Spinner('Checking ')
     client = None
     while client == None:
         client = enter_api_key()
@@ -173,8 +221,8 @@ if __name__ == '__main__':
     # Settings
     coin = 'DOGEUSDT'
     length_MA1 = 3
-    length_MA2 = 100
-    stop_loss = 100         #in points
+    length_MA2 = 50
+    stop_loss = 50          #in points
     trading_ratio = 0.08    #in %
     interval = '15m'
     limit = 1000            #max 1000 and > length_MA2
@@ -184,7 +232,7 @@ if __name__ == '__main__':
 
     # Настройка графика
     plt.ion()
-    plt.rcParams['toolbar'] = 'None' 
+    #plt.rcParams['toolbar'] = 'None' 
 
     # Словарь предыдущей записи
     jsMessage_last = {
@@ -202,33 +250,45 @@ if __name__ == '__main__':
     # Установка размера позиции
     position_amount = get_position_amount()
 
-    # Websocket
-    ubwa = unicorn_binance_websocket_api.BinanceWebSocketApiManager(exchange="binance.com")
-    ubwa.create_stream(f"kline_{interval}", coin)
-    while True:
-        oldest_data_from_stream_buffer = ubwa.pop_stream_data_from_stream_buffer()
-        if oldest_data_from_stream_buffer:
-            jsMessage = json.loads(oldest_data_from_stream_buffer)
-            if 'stream' in jsMessage.keys():
-                if jsMessage['data']['k']['t'] > jsMessage_last['data']['k']['t']:
-                    jsMessage_last = jsMessage
-                    df = get_history()
-                    price_poz_top = get_price_poz_top()
-                else:
-                    df.iloc[df.last_valid_index(), 0] = jsMessage['data']['k']['t']
-                    df.iloc[df.last_valid_index(), 1] = jsMessage['data']['k']['c']
-                    df["Close"] = df.Close.astype(float)
+    # Получение истории цен с подсчетом средних скользящих
+    df = get_history()
 
-                    average_last('MA1', length_MA1, df)
-                    average_last('MA2', length_MA2, df)
-                    buil_graf()
+    # Определение положения скользящих
+    price_poz_top = get_price_poz_top()
+    print('profit: ', round(check_profit(), 5), 'points')
+    buil_graf()
+    plt.show(block=True)
+    # # Websocket
+    # ubwa = unicorn_binance_websocket_api.BinanceWebSocketApiManager(exchange="binance.com")
+    # ubwa.create_stream(f"kline_{interval}", coin)
+    # while True:
+    #     oldest_data_from_stream_buffer = ubwa.pop_stream_data_from_stream_buffer()
+    #     if oldest_data_from_stream_buffer:
+    #         jsMessage = json.loads(oldest_data_from_stream_buffer)
+    #         if 'stream' in jsMessage.keys():
+    #             if jsMessage['data']['k']['t'] > jsMessage_last['data']['k']['t']:
+    #                 jsMessage_last = jsMessage
+    #                 df = get_history()
 
-                    if price_poz_top == False:
-                        if df['MA1'].iloc[len(df.index)-1] > df['MA2'].iloc[len(df.index)-1]:
-                            poz_long()
-                            price_poz_top = True
-                    elif price_poz_top == True:
-                        if df['MA1'].iloc[len(df.index)-1] < df['MA2'].iloc[len(df.index)-1]:
-                            poz_short()
-                            price_poz_top = False
-        else: time.sleep(1)
+    #                 if price_poz_top == False:
+    #                     if df['MA1'].iloc[len(df.index)-1] > df['MA2'].iloc[len(df.index)-1]:
+    #                         print('long')
+    #                         #poz_long()
+    #                         price_poz_top = True
+    #                 elif price_poz_top == True:
+    #                     if df['MA1'].iloc[len(df.index)-1] < df['MA2'].iloc[len(df.index)-1]:
+    #                         print('short')
+    #                         #poz_short()
+    #                         price_poz_top = False
+    #             else:
+    #                 df.iloc[df.last_valid_index(), 0] = jsMessage['data']['k']['t']
+    #                 df.iloc[df.last_valid_index(), 1] = jsMessage['data']['k']['c']
+    #                 df["Close"] = df.Close.astype(float)
+
+    #                 average_last('MA1', length_MA1, df)
+    #                 average_last('MA2', length_MA2, df)
+    #                 buil_graf()
+
+    #     else: 
+    #         spinner.next()
+    #         time.sleep(0.5)
