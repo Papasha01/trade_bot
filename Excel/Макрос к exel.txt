@@ -1,0 +1,144 @@
+Sub Импорт_данных()
+
+
+
+'
+'Выгрузка_данных_из_txt
+'
+Dim i As Long
+  For i = 1 To 3
+    For x = 1 To 20
+        x = x * 10
+        
+'
+'Новый лист
+'
+    Sheets.Add After:=ActiveSheet
+    
+    ActiveSheet.Name = "" + CStr(i) + "_" + CStr(x) + ""
+        
+        With ActiveSheet.QueryTables.Add(Connection:= _
+            "TEXT;C:\Users\SSS\Desktop\trade_bot\Statistic\" + CStr(i) + " " + CStr(x) + ".txt", Destination:=Range( _
+            "$A$1"))
+            .Name = "1 5"
+            .FieldNames = True
+            .RowNumbers = False
+            .FillAdjacentFormulas = False
+            .PreserveFormatting = True
+            .RefreshOnFileOpen = False
+            .RefreshStyle = xlInsertDeleteCells
+            .SavePassword = False
+            .SaveData = True
+            .AdjustColumnWidth = True
+            .RefreshPeriod = 0
+            .TextFilePromptOnRefresh = False
+            .TextFilePlatform = 866
+            .TextFileStartRow = 1
+            .TextFileParseType = xlDelimited
+            .TextFileTextQualifier = xlTextQualifierDoubleQuote
+            .TextFileConsecutiveDelimiter = False
+            .TextFileTabDelimiter = True
+            .TextFileSemicolonDelimiter = False
+            .TextFileCommaDelimiter = False
+            .TextFileSpaceDelimiter = False
+            .TextFileColumnDataTypes = Array(1)
+            .TextFileTrailingMinusNumbers = True
+            .Refresh BackgroundQuery:=False
+        End With
+        
+'
+'        Замена точек на запятые
+'
+        For y = 1 To Cells(Rows.Count, 1).End(xlUp).Row
+            a = Cells(y, 1)
+            a = Replace(a, ".", ",")
+            Cells(y, 1).Value = CDec(a)
+        Next
+'
+' Подсчет_коммиссии
+'
+            Range("B1").Select
+            ActiveCell.FormulaR1C1 = "=RC[-1]-0.00036*2"
+            Selection.AutoFill Destination:=Range("B1:B" + CStr(Cells(Rows.Count, 1).End(xlUp).Row) + ""), Type:=xlFillDefault
+            
+            '
+'Отзеркаливание значений
+'
+    Range("D1").Select
+    ActiveCell.FormulaR1C1 = "=RC[-3]*-1"
+    Range("D1").Select
+    Selection.AutoFill Destination:=Range("D1:D" + CStr(Cells(Rows.Count, 1).End(xlUp).Row) + ""), Type:=xlFillDefault
+    Range("E1").Select
+    ActiveCell.FormulaR1C1 = "=RC[-1]-0.00036*2"
+    Selection.AutoFill Destination:=Range("E1:E" + CStr(Cells(Rows.Count, 1).End(xlUp).Row) + ""), Type:=xlFillDefault
+            
+'
+'Выравнивание страницы
+'и настройка цветового выделения
+'
+    Range("A:B,D:E").Select
+    Range("D1").Activate
+    Selection.FormatConditions.AddColorScale ColorScaleType:=3
+    Selection.FormatConditions(Selection.FormatConditions.Count).SetFirstPriority
+    Selection.FormatConditions(1).ColorScaleCriteria(1).Type = _
+        xlConditionValueLowestValue
+    With Selection.FormatConditions(1).ColorScaleCriteria(1).FormatColor
+        .Color = 7039480
+        .TintAndShade = 0
+    End With
+    Selection.FormatConditions(1).ColorScaleCriteria(2).Type = _
+        xlConditionValuePercentile
+    Selection.FormatConditions(1).ColorScaleCriteria(2).Value = 50
+    With Selection.FormatConditions(1).ColorScaleCriteria(2).FormatColor
+        .Color = 8711167
+        .TintAndShade = 0
+    End With
+    Selection.FormatConditions(1).ColorScaleCriteria(3).Type = _
+        xlConditionValueHighestValue
+    With Selection.FormatConditions(1).ColorScaleCriteria(3).FormatColor
+        .Color = 8109667
+        .TintAndShade = 0
+    End With
+    Range("A:B,1:1048576").Select
+    Range("D1").Activate
+    Selection.ColumnWidth = 9.29
+    Range("A1").Select
+'
+' Проценты Макрос
+'
+
+'
+    Cells.Select
+    Selection.NumberFormat = "0.00%"
+    
+'
+' Profit Макрос
+'
+    Range("C1").Select
+    ActiveCell.FormulaR1C1 = "=SUM(C[-1])"
+    Range("F1").Select
+    ActiveCell.FormulaR1C1 = "=SUM(C[-1])"
+    
+            
+''
+''Построение графиков
+''
+'    Range("B1:B" + CStr(Cells(Rows.Count, 1).End(xlUp).Row) + "").Select
+'    ActiveSheet.Shapes.AddChart2(240, xlXYScatterLines).Select
+'
+'    ActiveChart.SetSourceData Source:=Range("" + CStr(i) + "_" + CStr(x) + "!$B$1:$B$" + CStr(Cells(Rows.Count, 1).End(xlUp).Row) + "")
+'    ActiveChart.ChartTitle.Select
+'    Selection.Delete
+'
+'    Range("E1:E" + CStr(Cells(Rows.Count, 1).End(xlUp).Row) + "").Select
+'    ActiveSheet.Shapes.AddChart2(240, xlXYScatterLines).Select
+'    ActiveChart.SetSourceData Source:=Range("" + CStr(i) + "_" + CStr(x) + "!$E$1:$E$" + CStr(Cells(Rows.Count, 1).End(xlUp).Row) + "")
+'    ActiveChart.ChartTitle.Select
+'    Selection.Delete
+            
+    Range("A1").Select
+        x = x / 10
+    Next
+  Next
+End Sub
+
